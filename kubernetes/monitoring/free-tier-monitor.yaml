@@ -1,0 +1,157 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: free-tier-monitor
+  namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: free-tier-monitor-script
+  namespace: monitoring
+data:
+  check.sh: |
+    #!/bin/sh
+    set -e
+
+    echo "============================================"
+    echo "  OCI Free Tier Usage Check"
+    echo "  $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+    echo "============================================"
+
+    # --- Check PVC usage (k8s-native, no OCI CLI needed) ---
+    echo ""
+    echo "=== PVC Usage ==="
+
+    TOTAL_PVC_GB=0
+    PVC_LIST=$(kubectl get pvc -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name} {.spec.resources.requests.storage}{"\n"}{end}' 2>/dev/null || echo "")
+
+    if [ -n "$PVC_LIST" ]; then
+      echo "$PVC_LIST" | while read line; do
+        NAME=$(echo "$line" | awk '{print $1}')
+        SIZE=$(echo "$line" | awk '{print $2}')
+        echo "  $NAME: $SIZE"
+      done
+
+      # Sum up GB values
+      TOTAL_PVC_GB=$(echo "$PVC_LIST" | awk '{
+        size=$2;
+        gsub(/Gi/,"",size);
+        gsub(/Ti/,"",size);
+        total+=size
+      } END {print total+0}')
+    else
+      echo "  No PVCs found"
+    fi
+
+    # Free tier budget: 200GB total, 50GB boot = 150GB for PVCs
+    PVC_BUDGET=150
+    echo ""
+    echo "  PVC Total: ${TOTAL_PVC_GB}Gi / ${PVC_BUDGET}Gi budget"
+
+    # --- Check node resources ---
+    echo ""
+    echo "=== Node Resources ==="
+    kubectl top nodes 2>/dev/null || echo "  (metrics-server not available)"
+
+    echo ""
+    echo "=== Pod Resource Usage ==="
+    kubectl top pods -A --sort-by=memory 2>/dev/null | head -20 || echo "  (metrics-server not available)"
+
+    # --- Resource Requests vs Capacity ---
+    echo ""
+    echo "=== Resource Allocation ==="
+    kubectl describe nodes | grep -A 5 "Allocated resources" 2>/dev/null || echo "  Could not get allocation info"
+
+    # --- Alerts ---
+    echo ""
+    echo "=== Alerts ==="
+
+    # PVC budget check
+    if [ "$TOTAL_PVC_GB" -ge 135 ]; then
+      echo "  CRITICAL: PVC storage at ${TOTAL_PVC_GB}/${PVC_BUDGET}Gi (>90%)"
+      # Could add webhook notification here
+    elif [ "$TOTAL_PVC_GB" -ge 120 ]; then
+      echo "  WARNING: PVC storage at ${TOTAL_PVC_GB}/${PVC_BUDGET}Gi (>80%)"
+    else
+      echo "  OK: PVC storage within budget (${TOTAL_PVC_GB}/${PVC_BUDGET}Gi)"
+    fi
+
+    # Update status ConfigMap
+    kubectl create configmap free-tier-status \
+      --namespace monitoring \
+      --from-literal=last-check="$(date -u '+%Y-%m-%d %H:%M:%S UTC')" \
+      --from-literal=pvc-used-gb="$TOTAL_PVC_GB" \
+      --from-literal=pvc-budget-gb="$PVC_BUDGET" \
+      --from-literal=pvc-percent="$(echo "$TOTAL_PVC_GB $PVC_BUDGET" | awk '{printf "%.0f", ($1/$2)*100}')" \
+      --dry-run=client -o yaml | kubectl apply -f -
+
+    echo ""
+    echo "Status ConfigMap updated: monitoring/free-tier-status"
+    echo "============================================"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: free-tier-monitor
+rules:
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "nodes", "pods", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: free-tier-monitor
+subjects:
+  - kind: ServiceAccount
+    name: free-tier-monitor
+    namespace: monitoring
+roleRef:
+  kind: ClusterRole
+  name: free-tier-monitor
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: free-tier-monitor
+  namespace: monitoring
+  labels:
+    app: free-tier-monitor
+spec:
+  schedule: "0 */6 * * *"  # Every 6 hours
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: free-tier-monitor
+          containers:
+            - name: monitor
+              image: bitnami/kubectl:latest
+              command: ["/bin/sh", "/scripts/check.sh"]
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 100m
+                  memory: 128Mi
+              volumeMounts:
+                - name: script
+                  mountPath: /scripts
+          restartPolicy: OnFailure
+          nodeSelector:
+            kubernetes.io/arch: arm64
+          volumes:
+            - name: script
+              configMap:
+                name: free-tier-monitor-script
+                defaultMode: 0755
+

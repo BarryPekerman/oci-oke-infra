@@ -1,0 +1,90 @@
+# ArgoCD Helm Chart Values - OKE Free Tier
+# Resource-constrained for single 4 OCPU / 24GB ARM64 node
+# Helm chart: argo/argo-cd
+
+global:
+  # Use ARM64-compatible images
+  image:
+    tag: "v2.13.3"
+
+# --- Server ---
+server:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  # Disable TLS on server side (Cloudflare Tunnel handles TLS)
+  extraArgs:
+    - --insecure
+
+  service:
+    type: ClusterIP
+
+# --- Repo Server ---
+repoServer:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+
+# --- Application Controller ---
+controller:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# --- Redis ---
+redis:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- Notifications (disabled to save resources) ---
+notifications:
+  enabled: false
+
+# --- ApplicationSet Controller ---
+applicationSet:
+  replicas: 1
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+# --- Dex (SSO - disabled to save resources) ---
+dex:
+  enabled: false
+
+# --- Config ---
+configs:
+  params:
+    # Allow insecure connections (Cloudflare Tunnel terminates TLS)
+    server.insecure: true
+
+  repositories:
+    # This repo for GitOps
+    oci-setup:
+      url: https://github.com/YOUR_USERNAME/oci-setup.git
+      name: oci-setup
+      type: git

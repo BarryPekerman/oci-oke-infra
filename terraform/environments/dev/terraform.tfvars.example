@@ -1,0 +1,39 @@
+# ============================================================================
+# Dev Environment - OKE Free Tier Configuration (Example)
+# Copy to terraform.tfvars and fill in your values
+# ============================================================================
+
+environment = "dev"
+
+# --- OCI Authentication ---
+tenancy_ocid     = "ocid1.tenancy.oc1..YOUR_TENANCY_OCID"
+compartment_ocid = "ocid1.tenancy.oc1..YOUR_COMPARTMENT_OCID"
+user_ocid        = "ocid1.user.oc1..YOUR_USER_OCID"
+fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
+private_key      = <<EOF
+-----BEGIN PRIVATE KEY-----
+YOUR_OCI_API_PRIVATE_KEY_HERE
+-----END PRIVATE KEY-----
+EOF
+
+# --- OCI Region ---
+region = "il-jerusalem-1"
+
+# --- SSH Key (emergency node access) ---
+ssh_public_key = "ssh-ed25519 AAAA... your-key-comment"
+
+# --- OKE Free Tier Sizing (2 equal nodes) ---
+node_ocpus          = 2    # Per node (2x2 = 4 total, max free: 4)
+node_memory_gb      = 12   # Per node (2x12 = 24 total, max free: 24)
+node_count          = 2    # 2 nodes for HA, splits free tier evenly
+boot_volume_size_gb = 50   # Per node, min 50, from 200GB storage budget
+
+# --- Cloudflare ---
+# cloudflare_domain = "yourdomain.com"
+
+# --- CI upgrader identity (scoped API-key user for the OKE version-guard) ---
+# Off by default. Set enable_ci_upgrader = true, then apply ONLY this module:
+#   terraform apply -target=module.ci_upgrader
+# Then upload an API key to the created user and store it as a GitHub secret.
+# enable_ci_upgrader = true
+# ci_domain_url      = "https://idcs-xxxxxxxx.identity.oraclecloud.com"   # your Default identity domain URL

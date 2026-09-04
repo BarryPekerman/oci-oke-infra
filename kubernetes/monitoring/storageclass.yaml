@@ -1,0 +1,21 @@
+# OCI Block Volume StorageClass for OKE Free Tier
+# Budget: 200GB total (boot volumes + PVCs)
+# Boot volume uses 50GB, leaving 150GB for PVCs
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: oci-bv-free-tier
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "false"
+    # Free tier budget tracking
+    free-tier/total-budget-gb: "200"
+    free-tier/boot-volume-gb: "50"
+    free-tier/available-for-pvcs-gb: "150"
+provisioner: blockvolume.csi.oraclecloud.com
+parameters:
+  # Use lower-cost balanced performance tier
+  vpusPerGB: "10"
+reclaimPolicy: Delete
+volumeBindingMode: WaitForFirstConsumer
+allowVolumeExpansion: true
+

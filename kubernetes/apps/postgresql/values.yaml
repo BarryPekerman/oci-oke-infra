@@ -1,0 +1,44 @@
+# PostgreSQL Helm Values - OKE Free Tier
+# Chart: bitnami/postgresql
+# Budget: 0.5 OCPU, 2GB RAM, 20GB PVC
+
+# Use ARM64-compatible image
+image:
+  registry: docker.io
+  repository: bitnami/postgresql
+  tag: "16"
+
+# Authentication
+auth:
+  postgresPassword: "" # Set via --set or secret
+  database: "appdb"
+  username: "app"
+  password: "" # Set via --set or secret
+
+# Resource limits (free tier budget)
+primary:
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 2Gi
+
+  persistence:
+    enabled: true
+    storageClass: "oci-bv-free-tier"
+    size: 20Gi
+
+  # Node affinity for ARM64
+  nodeSelector:
+    kubernetes.io/arch: arm64
+
+# Disable read replicas (save resources)
+readReplicas:
+  replicaCount: 0
+
+# Metrics (disabled to save resources)
+metrics:
+  enabled: false
+

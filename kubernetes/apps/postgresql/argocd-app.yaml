@@ -1,0 +1,57 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: postgresql
+  namespace: argocd
+  labels:
+    app: postgresql
+    wave: "2"
+    tier: free
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://charts.bitnami.com/bitnami
+    chart: postgresql
+    targetRevision: "16.*"
+    helm:
+      valueFiles: []
+      values: |
+        image:
+          registry: docker.io
+          repository: bitnami/postgresql
+          tag: "16"
+        auth:
+          postgresPassword: "changeme-postgres"
+          database: "appdb"
+          username: "app"
+          password: "changeme-app"
+        primary:
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          persistence:
+            enabled: true
+            storageClass: "oci-bv-free-tier"
+            size: 20Gi
+          nodeSelector:
+            kubernetes.io/arch: arm64
+        readReplicas:
+          replicaCount: 0
+        metrics:
+          enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+
