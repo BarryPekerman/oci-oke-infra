@@ -25,7 +25,7 @@ server:
   service:
     type: ClusterIP
 
-# --- Repo Server ---
+# --- Repo Server (+ ksops SOPS-decrypt CMP sidecar) ---
 repoServer:
   replicas: 1
   resources:
@@ -35,6 +35,59 @@ repoServer:
     limits:
       cpu: 1000m
       memory: 2Gi
+  # Install arm64 sops + ksops into a shared volume at boot (base image ships neither).
+  initContainers:
+    - name: install-ksops
+      image: alpine:3.20
+      command: ["sh", "-c"]
+      args:
+        - |
+          set -e
+          apk add --no-cache curl tar >/dev/null
+          curl -sSL -o /custom-tools/sops https://github.com/getsops/sops/releases/download/v3.9.1/sops-v3.9.1.linux.arm64
+          curl -sSL https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_arm64.tar.gz | tar -xz -C /custom-tools ksops
+          chmod 0755 /custom-tools/sops /custom-tools/ksops
+      volumeMounts:
+        - name: custom-tools
+          mountPath: /custom-tools
+  extraContainers:
+    - name: ksops
+      image: quay.io/argoproj/argocd:v2.13.3
+      command: ["/var/run/argocd/argocd-cmp-server"]
+      env:
+        - name: SOPS_AGE_KEY_FILE
+          value: /home/argocd/.config/sops/age/keys.txt
+        - name: PATH
+          value: "/custom-tools:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+      volumeMounts:
+        - name: var-files
+          mountPath: /var/run/argocd
+        - name: plugins
+          mountPath: /home/argocd/cmp-server/plugins
+        - name: tmp
+          mountPath: /tmp
+        - name: custom-tools
+          mountPath: /custom-tools
+        - name: argocd-cmp-cm
+          mountPath: /home/argocd/cmp-server/config/plugin.yaml
+          subPath: ksops.yaml
+        - name: sops-age
+          mountPath: /home/argocd/.config/sops/age
+          readOnly: true
+  volumes:
+    - name: custom-tools
+      emptyDir: {}
+    - name: argocd-cmp-cm
+      configMap:
+        name: argocd-cmp-cm
+    # Age private key — NOT managed by Helm/git. Bootstrap once from `pass`:
+    #   pass show wiki/sops-age-key | kubectl -n argocd create secret generic sops-age --from-file=keys.txt=/dev/stdin
+    - name: sops-age
+      secret:
+        secretName: sops-age
 
 # --- Application Controller ---
 controller:
@@ -78,6 +131,16 @@ dex:
 
 # --- Config ---
 configs:
+  # ksops Config Management Plugin (consumed by the repoServer sidecar above)
+  cmp:
+    create: true
+    plugins:
+      ksops:
+        generate:
+          command: ["sh", "-c", "kustomize build --enable-alpha-plugins --enable-exec ."]
+        discover:
+          fileName: "kustomization.yaml"
+
   params:
     # Allow insecure connections (Cloudflare Tunnel terminates TLS)
     server.insecure: true
