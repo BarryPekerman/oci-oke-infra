@@ -38,14 +38,18 @@ repoServer:
   # Install arm64 sops + ksops into a shared volume at boot (base image ships neither).
   initContainers:
     - name: install-ksops
-      image: alpine:3.20
+      image: alpine:3.24
       command: ["sh", "-c"]
       args:
         - |
           set -e
           apk add --no-cache curl tar >/dev/null
-          curl -sSL -o /custom-tools/sops https://github.com/getsops/sops/releases/download/v3.9.1/sops-v3.9.1.linux.arm64
-          curl -sSL https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_arm64.tar.gz | tar -xz -C /custom-tools ksops
+          # Pinned + checksum-verified (sha256 from each release's published checksums).
+          curl -fsSL -o /custom-tools/sops https://github.com/getsops/sops/releases/download/v3.9.1/sops-v3.9.1.linux.arm64
+          curl -fsSL -o /tmp/ksops.tgz https://github.com/viaduct-ai/kustomize-sops/releases/download/v4.3.3/ksops_4.3.3_Linux_arm64.tar.gz
+          echo "bc946fef11dbe199587adac567037b69374c4202f928ca138443539efc85b357  /custom-tools/sops" | sha256sum -c -
+          echo "802a5043baa1b83ac11533cb63b94ea1dfaa2401b2a46c47b2fea9f5c4aa1e90  /tmp/ksops.tgz" | sha256sum -c -
+          tar -xzf /tmp/ksops.tgz -C /custom-tools ksops
           chmod 0755 /custom-tools/sops /custom-tools/ksops
       volumeMounts:
         - name: custom-tools

@@ -1,6 +1,6 @@
 # ============================================================================
 # OKE Module - Free Tier
-# Basic cluster + ARM64 node pool (4 OCPU, 24GB RAM)
+# Basic cluster + ARM64 node pool (sized by node_count x node_ocpus/node_memory_gb)
 # ============================================================================
 
 # --- Lookup latest OKE-compatible Oracle Linux ARM64 image ---
@@ -9,17 +9,32 @@ data "oci_containerengine_node_pool_option" "oke_node_pool_options" {
   compartment_id      = var.compartment_ocid
 }
 
-# Get the latest Kubernetes version available
+# Version/image are only used at creation: afterwards oke-version-guard owns them
+# (see lifecycle.ignore_changes below).
 locals {
-  # Use latest k8s version or the one specified
-  k8s_version = var.kubernetes_version != "" ? var.kubernetes_version : reverse(sort(data.oci_containerengine_node_pool_option.oke_node_pool_options.kubernetes_versions))[0]
-
-  # Find the latest Oracle Linux 8 aarch64 image for OKE
-  node_pool_images = [
-    for s in data.oci_containerengine_node_pool_option.oke_node_pool_options.sources :
-    s if length(regexall("Oracle-Linux-8.*aarch64", s.source_name)) > 0
+  # sort() is lexical (v1.34.10 < v1.34.2), so sort on a zero-padded key instead.
+  k8s_versions_sorted = [
+    for k in sort([
+      for v in data.oci_containerengine_node_pool_option.oke_node_pool_options.kubernetes_versions :
+      format("%04d.%04d.%04d|%s",
+        tonumber(split(".", trimprefix(v, "v"))[0]),
+        tonumber(split(".", trimprefix(v, "v"))[1]),
+        tonumber(split(".", trimprefix(v, "v"))[2]),
+      v)
+    ]) : split("|", k)[1]
   ]
-  node_image_id = local.node_pool_images[0].image_id
+  k8s_version = var.kubernetes_version != "" ? var.kubernetes_version : local.k8s_versions_sorted[length(local.k8s_versions_sorted) - 1]
+
+  # OKE worker images pin a k8s version ("...-OKE-1.35.2-1820"); the image must match
+  # k8s_version or OKE rejects the pool. Newest build wins (names embed the build date).
+  node_pool_images = sort([
+    for s in data.oci_containerengine_node_pool_option.oke_node_pool_options.sources :
+    s.source_name if length(regexall("^Oracle-Linux-8\\.[0-9.]+-aarch64-.*-OKE-${replace(trimprefix(local.k8s_version, "v"), ".", "\\.")}-", s.source_name)) > 0
+  ])
+  node_image_id = length(local.node_pool_images) == 0 ? null : one([
+    for s in data.oci_containerengine_node_pool_option.oke_node_pool_options.sources :
+    s.image_id if s.source_name == local.node_pool_images[length(local.node_pool_images) - 1]
+  ])
 }
 
 # --- OKE Cluster ---
@@ -129,6 +144,10 @@ resource "oci_containerengine_node_pool" "free_tier_pool" {
 
   # oke-version-guard upgrades the pool and swaps to the matching OKE worker image.
   lifecycle {
+    precondition {
+      condition     = local.node_image_id != null
+      error_message = "No Oracle Linux 8 aarch64 OKE worker image for Kubernetes ${local.k8s_version}; set kubernetes_version to one that has an image."
+    }
     ignore_changes = [kubernetes_version, node_source_details[0].image_id]
   }
 }
