@@ -1,11 +1,11 @@
 # ArgoCD Helm Chart Values - OKE Free Tier
-# Resource-constrained for single 4 OCPU / 24GB ARM64 node
-# Helm chart: argo/argo-cd
-
-global:
-  # Use ARM64-compatible images
-  image:
-    tag: "v2.13.3"
+# Resource-constrained for 2x (2 OCPU / 12GB) ARM64 nodes
+# Helm chart: argo/argo-cd 10.10.2 (Argo CD v3.5.4 — tested with Kubernetes 1.33-1.36)
+#
+#   helm upgrade --install argocd argo/argo-cd --version 10.10.2 -n argocd -f values.yaml
+#
+# Image tag follows the chart's appVersion (multi-arch, runs on ARM64). Don't pin
+# global.image.tag: a 2.13 pin under a 3.x chart broke diffs on Kubernetes 1.35.
 
 # --- Server ---
 server:
@@ -52,7 +52,8 @@ repoServer:
           mountPath: /custom-tools
   extraContainers:
     - name: ksops
-      image: quay.io/argoproj/argocd:v2.13.3
+      # Must match the chart's Argo CD version (argocd-cmp-server talks to repo-server).
+      image: quay.io/argoproj/argocd:v3.5.4
       command: ["/var/run/argocd/argocd-cmp-server"]
       env:
         - name: SOPS_AGE_KEY_FILE
@@ -141,6 +142,12 @@ configs:
         discover:
           fileName: "kustomization.yaml"
 
+  cm:
+    # Argo CD 3.0 changed the default tracking from labels to annotations. Existing apps
+    # (wiki, cert-manager, envoy-gateway) are label-tracked and auto-prune, so keep labels
+    # to avoid orphaning/pruning surprises on the first sync after the upgrade.
+    application.resourceTrackingMethod: label
+
   params:
-    # Allow insecure connections (Cloudflare Tunnel terminates TLS)
+    # Serve plain HTTP (TLS terminated in front of argocd-server)
     server.insecure: true

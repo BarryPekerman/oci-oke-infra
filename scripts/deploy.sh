@@ -47,7 +47,7 @@ if ! helm repo list 2>/dev/null | grep -q "argo"; then
 fi
 helm repo update
 
-helm upgrade --install argocd argo/argo-cd \
+helm upgrade --install argocd argo/argo-cd --version 10.10.2 \
   --namespace argocd \
   --create-namespace \
   --values "${K8S_DIR}/argocd/values.yaml" \
