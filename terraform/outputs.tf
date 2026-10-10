@@ -18,8 +18,8 @@ output "cluster_endpoint" {
 }
 
 output "kubernetes_version" {
-  description = "Kubernetes version"
-  value       = module.oke.k8s_version
+  description = "Kubernetes version running on the cluster (upgrades are owned by oke-version-guard)"
+  value       = module.oke.cluster_kubernetes_version
 }
 
 output "kubeconfig_command" {

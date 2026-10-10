@@ -27,6 +27,12 @@ resource "oci_identity_domains_user" "ci" {
     value   = var.user_email
     primary = true
   }
+
+  # IDCS adds its own extension schemas and a "recovery" copy of the email on create;
+  # without this every plan wants to strip them.
+  lifecycle {
+    ignore_changes = [schemas, emails]
+  }
 }
 
 # --- Group the CI user belongs to; the policy targets this group ---
@@ -38,6 +44,12 @@ resource "oci_identity_domains_group" "ci" {
   members {
     type  = "User"
     value = oci_identity_domains_user.ci.id
+  }
+
+  # IDCS adds the OCITags extension schema on create, and the provider doesn't read
+  # members back (without attribute_sets in state), so every plan would re-add the user.
+  lifecycle {
+    ignore_changes = [schemas, members]
   }
 }
 
