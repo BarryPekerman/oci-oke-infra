@@ -1,0 +1,17 @@
+# Terraform state & secrets — never commit (state holds resource details; tfvars holds the API private key)
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+tfplan
+.terraform/
+crash.log
+
+# Keys / kube credentials
+*.pem
+kubeconfig
+.kube/
+
+# Plaintext k8s secrets
+secret.yaml
+*.secret.yaml

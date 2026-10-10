@@ -42,11 +42,6 @@ output "environment" {
   value       = var.environment
 }
 
-output "cloudflare_domain" {
-  description = "Cloudflare domain (if configured)"
-  value       = var.cloudflare_domain
-}
-
 output "compartment_ocid" {
   description = "Compartment OCID"
   value       = var.compartment_ocid
@@ -56,10 +51,10 @@ output "compartment_ocid" {
 output "free_tier_usage" {
   description = "Estimated free tier usage"
   value = {
-    compute_ocpus       = "${var.node_ocpus * var.node_count} / 4 OCPU"
-    compute_memory_gb   = "${var.node_memory_gb * var.node_count} / 24 GB"
-    boot_volume_gb      = "${var.boot_volume_size_gb * var.node_count} / 200 GB (shared with PVCs)"
-    remaining_storage   = "${200 - (var.boot_volume_size_gb * var.node_count)} GB available for PVCs"
-    cluster_type        = "BASIC (Always Free)"
+    compute_ocpus     = "${var.node_ocpus * var.node_count} / 4 OCPU"
+    compute_memory_gb = "${var.node_memory_gb * var.node_count} / 24 GB"
+    boot_volume_gb    = "${var.boot_volume_size_gb * var.node_count} / 200 GB (shared with PVCs)"
+    remaining_storage = "${200 - (var.boot_volume_size_gb * var.node_count)} GB available for PVCs"
+    cluster_type      = "BASIC (Always Free)"
   }
 }

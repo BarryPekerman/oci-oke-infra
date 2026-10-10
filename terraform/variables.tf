@@ -103,14 +103,6 @@ variable "private_subnet_cidr" {
   default     = "10.0.1.0/24"
 }
 
-# --- Cloudflare ---
-
-variable "cloudflare_domain" {
-  description = "Domain managed by Cloudflare (e.g., yourdomain.com)"
-  type        = string
-  default     = ""
-}
-
 # --- CI upgrader identity (scoped API-key user for the OKE version-guard) ---
 
 variable "enable_ci_upgrader" {

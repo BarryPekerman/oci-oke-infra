@@ -1,23 +1,23 @@
 # OKE Free Tier Dev Environment
 
-Maximal Oracle Cloud Always Free tier Kubernetes environment with GitOps.
+Terraform for an Oracle Cloud Always Free OKE cluster, plus the ArgoCD install
+that the workloads are deployed through.
 
 ## Architecture
 
 ```
 OCI Always Free (il-jerusalem-1)
 ├── OKE Basic Cluster (managed control plane, free)
-│   └── Node Pool: 1x VM.Standard.A1.Flex (4 OCPU, 24GB RAM)
+│   └── Node Pool: 2x VM.Standard.A1.Flex (2 OCPU, 12GB RAM each)
 ├── VCN (public + private subnets)
-├── Block Storage (200GB budget: 50GB boot + 150GB PVCs)
-└── Cloudflare Tunnel (secure public ingress, no LB needed)
+└── Block Storage (200GB budget: 2x50GB boot + PVCs)
 
 Kubernetes Workloads
-├── ArgoCD          (GitOps - Helm)
-├── cloudflared     (Cloudflare Tunnel)
-├── PostgreSQL      (Bitnami Helm, 20GB PVC)
-├── n8n             (workflow automation, 10GB PVC)
-└── Free Tier Monitor (CronJob, usage alerts)
+├── ArgoCD         (Helm, values in kubernetes/argocd/ — ksops sidecar for SOPS secrets)
+└── via ArgoCD, managed in the migrate-schitzopunk repo:
+    ├── wiki           (MediaWiki, 50GB PVC on oci-bv-free-tier)
+    ├── cert-manager
+    └── envoy-gateway  (public ingress)
 ```
 
 ## Free Tier Budget
@@ -25,25 +25,34 @@ Kubernetes Workloads
 | Resource | Limit | Used |
 |---|---|---|
 | OKE Cluster | 1 Basic | 1 |
-| Compute | 4 OCPU, 24GB | 4 OCPU, 24GB |
-| Block Storage | 200GB | 50GB boot + PVCs |
-| Load Balancer | 1 flexible | 0 (Cloudflare Tunnel) |
+| Compute | 4 OCPU, 24GB | 4 OCPU, 24GB (2x2 / 2x12) |
+| Block Storage | 200GB | 100GB boot + 50GB wiki PVC |
+| Volume Backups | 5 | check with `scripts/check-free-tier.sh` |
 | Outbound Data | 10TB/mo | Minimal |
 
-## Quick Start
+## Terraform
+
+State is **not** in this repo — apply only from the machine that holds
+`terraform/terraform.tfstate`. CI (`.github/workflows/terraform-check.yml`) runs
+`fmt` + `validate` only and never plans or applies.
 
 ```bash
-# 1. Deploy infrastructure
 cd terraform
 terraform init
-terraform plan -var-file=environments/dev/terraform.tfvars
+terraform plan  -var-file=environments/dev/terraform.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
+```
 
-# 2. Configure kubectl
-./scripts/setup-kubeconfig.sh
+The cluster/node-pool Kubernetes version and node image are **owned by
+[oke-version-guard](https://github.com/BarryPekerman/oke-version-guard)** after
+creation (`lifecycle.ignore_changes`), so Terraform never fights its upgrades.
 
-# 3. Deploy everything
-./scripts/deploy.sh
+### CI upgrader identity
+`modules/ci-upgrader` creates the scoped user + group + policy that
+oke-version-guard authenticates as. Opt-in via `enable_ci_upgrader`; apply it on
+its own:
+```bash
+terraform apply -var-file=environments/dev/terraform.tfvars -target=module.ci_upgrader
 ```
 
 ## Project Structure
@@ -52,42 +61,19 @@ terraform apply -var-file=environments/dev/terraform.tfvars
 terraform/              # OKE infrastructure (Terraform)
   modules/networking/   # VCN, subnets, gateways, NSGs
   modules/oke/          # OKE cluster + ARM64 node pool
-  modules/iam/          # Dynamic groups + policies
-kubernetes/             # Kubernetes manifests
+  modules/iam/          # Dynamic group + node policies (block volumes for PVCs)
+  modules/ci-upgrader/  # Scoped CI identity for oke-version-guard
+kubernetes/
   argocd/               # ArgoCD Helm values
-  cloudflared/          # Cloudflare Tunnel deployment
-  apps/postgresql/      # PostgreSQL (Wave 2)
-  apps/n8n/             # n8n (Wave 2)
-  monitoring/           # StorageClass + free tier monitor
+  storage/              # oci-bv-free-tier StorageClass (used by the wiki PVC)
 scripts/                # Deployment and utility scripts
-.github/workflows/      # CI/CD pipeline
-v1-k3s/                 # Archived K3s-era files
+.github/workflows/      # Terraform static checks
 ```
-
-## Deployment Waves
-
-**Wave 1 (GitOps Foundation):**
-- OKE cluster via Terraform
-- Cloudflare Tunnel for ingress
-- ArgoCD for GitOps
-
-**Wave 2 (Applications, ArgoCD-managed):**
-- PostgreSQL (shared database)
-- n8n (workflow automation)
-- Additional stateful apps
 
 ## Scripts
 
 | Script | Purpose |
 |---|---|
-| `scripts/deploy.sh` | Full end-to-end deployment |
+| `scripts/deploy.sh` | Terraform apply → kubeconfig → StorageClass → ArgoCD |
 | `scripts/setup-kubeconfig.sh` | Generate kubectl config |
-| `scripts/check-free-tier.sh` | Check OCI usage vs limits |
-
-## Cloudflare Tunnel Setup
-
-1. Create a Cloudflare account and add your domain
-2. Create a tunnel: `cloudflared tunnel create oke-free`
-3. Create `kubernetes/cloudflared/secret.yaml` from the example
-4. Update `kubernetes/cloudflared/configmap.yaml` with tunnel ID and domain
-5. Deploy: `kubectl apply -f kubernetes/cloudflared/`
+| `scripts/check-free-tier.sh` | Check OCI usage vs Always Free limits |

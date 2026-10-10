@@ -49,29 +49,24 @@ variable "kubernetes_version" {
   default     = ""
 }
 
-# --- Free tier sizing ---
+# --- Free tier sizing (passed from root; see root variables.tf for defaults) ---
 
 variable "node_count" {
-  description = "Number of worker nodes (1 for free tier)"
+  description = "Number of worker nodes"
   type        = number
-  default     = 1
 }
 
 variable "node_ocpus" {
-  description = "OCPUs per node (4 max free tier for ARM)"
+  description = "OCPUs per node (total across nodes <= 4 for Always Free ARM)"
   type        = number
-  default     = 4
 }
 
 variable "node_memory_gb" {
-  description = "Memory in GB per node (24 max free tier for ARM)"
+  description = "Memory in GB per node (total across nodes <= 24 for Always Free ARM)"
   type        = number
-  default     = 24
 }
 
 variable "boot_volume_size_gb" {
   description = "Boot volume size in GB (50 min, counts against 200GB free tier)"
   type        = number
-  default     = 50
 }
-

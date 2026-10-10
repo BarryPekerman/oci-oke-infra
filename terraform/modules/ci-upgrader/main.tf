@@ -54,5 +54,7 @@ resource "oci_identity_policy" "ci" {
     "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to use vnics in compartment id ${var.compartment_ocid}",
     "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to use network-security-groups in compartment id ${var.compartment_ocid}",
     "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to manage volume-backups in compartment id ${var.compartment_ocid}",
+    # Creating a backup also needs VOLUME_WRITE on the source volume (pre-upgrade snapshots).
+    "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to use volumes in compartment id ${var.compartment_ocid}",
   ]
 }
