@@ -114,9 +114,9 @@ redis:
 notifications:
   enabled: false
 
-# --- ApplicationSet Controller ---
+# --- ApplicationSet Controller (no ApplicationSets in use) ---
 applicationSet:
-  replicas: 1
+  replicas: 0
   resources:
     requests:
       cpu: 50m
@@ -144,10 +144,3 @@ configs:
   params:
     # Allow insecure connections (Cloudflare Tunnel terminates TLS)
     server.insecure: true
-
-  repositories:
-    # This repo for GitOps
-    oci-setup:
-      url: https://github.com/YOUR_USERNAME/oci-setup.git
-      name: oci-setup
-      type: git

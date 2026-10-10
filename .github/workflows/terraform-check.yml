@@ -1,0 +1,30 @@
+name: Terraform check
+
+# Static checks only — no credentials, no state, never plans or applies.
+# State lives outside this repo, so a CI apply would start from empty state and try
+# to create a duplicate cluster. Apply locally from the machine that holds the state.
+on:
+  pull_request:
+    paths: ['terraform/**']
+  push:
+    branches: [main]
+    paths: ['terraform/**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+      - run: terraform fmt -recursive -check -diff
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate -no-color

@@ -88,6 +88,18 @@ echo "  Block Volumes: ${TOTAL_BV}GB"
 echo "  Boot Volumes:  ${TOTAL_BOOT}GB"
 echo "  Total Storage: ${TOTAL_STORAGE}/200 GB ($(python3 -c "print(f'{${TOTAL_STORAGE}/200*100:.0f}%')"))"
 
+# --- Volume Backups ---
+echo ""
+echo "=== Volume Backups (Limit: 5 total) ==="
+BACKUP_COUNT=$(oci bv backup list \
+  -c "$COMPARTMENT_ID" \
+  --region "$REGION" \
+  --all \
+  --query "length(data[?\"lifecycle-state\"=='AVAILABLE'])" \
+  --raw-output 2>/dev/null || echo "0")
+BACKUP_COUNT=${BACKUP_COUNT:-0}
+echo "  Volume backups: ${BACKUP_COUNT}/5"
+
 # --- OKE ---
 echo ""
 echo "=== OKE Clusters (Limit: 1 Basic cluster) ==="
@@ -101,12 +113,16 @@ oci ce cluster list \
 # --- Warnings ---
 echo ""
 echo "=== Alerts ==="
-if [ "$TOTAL_STORAGE" -ge 160 ]; then
-  echo "  WARNING: Storage at ${TOTAL_STORAGE}/200 GB (>80%)"
-elif [ "$TOTAL_STORAGE" -ge 180 ]; then
+if [ "$TOTAL_STORAGE" -ge 180 ]; then
   echo "  CRITICAL: Storage at ${TOTAL_STORAGE}/200 GB (>90%)"
+elif [ "$TOTAL_STORAGE" -ge 160 ]; then
+  echo "  WARNING: Storage at ${TOTAL_STORAGE}/200 GB (>80%)"
 else
   echo "  OK: Storage usage is within safe limits"
+fi
+
+if [ "$BACKUP_COUNT" -gt 5 ]; then
+  echo "  CRITICAL: ${BACKUP_COUNT} volume backups (free limit: 5) — extra ones are billed"
 fi
 
 OCPU_INT=$(python3 -c "print(int(float(${TOTAL_OCPUS})))" 2>/dev/null || echo "0")

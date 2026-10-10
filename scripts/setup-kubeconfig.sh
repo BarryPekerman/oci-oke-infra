@@ -67,7 +67,7 @@ fi
 # Create namespaces
 echo ""
 echo "Creating namespaces..."
-for NS in argocd cloudflared monitoring apps; do
+for NS in argocd; do
   kubectl create namespace "$NS" --dry-run=client -o yaml | kubectl apply -f - 2>/dev/null
   echo "  Namespace '$NS' ensured"
 done

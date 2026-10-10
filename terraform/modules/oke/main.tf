@@ -70,9 +70,15 @@ resource "oci_containerengine_cluster" "oke_cluster" {
     "environment" = var.environment
     "free_tier"   = "true"
   }
+
+  # Version is owned by oke-version-guard after creation; "latest" here would
+  # otherwise try to jump minors (OKE refuses) and fight the upgrade automation.
+  lifecycle {
+    ignore_changes = [kubernetes_version]
+  }
 }
 
-# --- Node Pool (maximal free tier: 4 OCPU, 24GB, 1 node) ---
+# --- Node Pool (free tier: node_count x node_ocpus <= 4 OCPU, <= 24GB total) ---
 resource "oci_containerengine_node_pool" "free_tier_pool" {
   cluster_id         = oci_containerengine_cluster.oke_cluster.id
   compartment_id     = var.compartment_ocid
@@ -119,5 +125,10 @@ resource "oci_containerengine_node_pool" "free_tier_pool" {
     "managed_by"  = "terraform"
     "environment" = var.environment
     "free_tier"   = "true"
+  }
+
+  # oke-version-guard upgrades the pool and swaps to the matching OKE worker image.
+  lifecycle {
+    ignore_changes = [kubernetes_version, node_source_details[0].image_id]
   }
 }

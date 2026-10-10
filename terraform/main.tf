@@ -3,14 +3,6 @@
 # Maximal Always Free: 1x Basic OKE cluster, 4 OCPU ARM64, 24GB RAM
 # ============================================================================
 
-locals {
-  tags = {
-    "managed_by"  = "terraform"
-    "environment" = var.environment
-    "free_tier"   = "true"
-  }
-}
-
 # --- Data Sources ---
 data "oci_identity_availability_domains" "ads" {
   compartment_id = var.tenancy_ocid
