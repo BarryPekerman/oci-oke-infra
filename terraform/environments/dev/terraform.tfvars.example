@@ -5,19 +5,11 @@
 
 environment = "dev"
 
-# --- OCI Authentication ---
+# --- OCI ---
+# Auth is not set here: the provider reads ~/.oci/config (profile DEFAULT).
 tenancy_ocid     = "ocid1.tenancy.oc1..YOUR_TENANCY_OCID"
 compartment_ocid = "ocid1.tenancy.oc1..YOUR_COMPARTMENT_OCID"
-user_ocid        = "ocid1.user.oc1..YOUR_USER_OCID"
-fingerprint      = "xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx:xx"
-private_key      = <<EOF
------BEGIN PRIVATE KEY-----
-YOUR_OCI_API_PRIVATE_KEY_HERE
------END PRIVATE KEY-----
-EOF
-
-# --- OCI Region ---
-region = "il-jerusalem-1"
+region           = "il-jerusalem-1"
 
 # --- SSH Key (emergency node access) ---
 ssh_public_key = "ssh-ed25519 AAAA... your-key-comment"
@@ -35,3 +27,8 @@ boot_volume_size_gb = 50   # Per node, min 50, from 200GB storage budget
 # enable_ci_upgrader = true
 # ci_domain_url      = "https://idcs-xxxxxxxx.identity.oraclecloud.com"   # your Default identity domain URL
 # ci_user_email      = "you+oke-upgrader@example.com"                      # IDCS requires an email
+
+# --- Volume backups (PVC volumes created by the CSI driver) ---
+# backup_volume_ids = {
+#   wiki = "ocid1.volume.oc1.il-jerusalem-1.YOUR_VOLUME_OCID"
+# }

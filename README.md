@@ -27,25 +27,42 @@ Kubernetes Workloads
 | OKE Cluster | 1 Basic | 1 |
 | Compute | 4 OCPU, 24GB | 4 OCPU, 24GB (2x2 / 2x12) |
 | Block Storage | 200GB | 100GB boot + 50GB wiki PVC |
-| Volume Backups | 5 | check with `scripts/check-free-tier.sh` |
+| Volume Backups | 5 | ≤ 3 (2 weekly + 1 pre-upgrade); check with `scripts/check-free-tier.sh` |
 | Outbound Data | 10TB/mo | Minimal |
 
 ## Terraform
 
-State is **not** in this repo — apply only from the machine that holds
-`terraform/terraform.tfstate`. CI (`.github/workflows/terraform-check.yml`) runs
-`fmt` + `validate` only and never plans or applies.
+**State** lives in HCP Terraform (org `Berries-`, workspace `oci-oke-infra`) in
+**Local** execution mode: plans and applies run on your machine, HCP only stores
+and locks the state. **Auth** comes from the OCI CLI config (`~/.oci/config`,
+profile `DEFAULT`), so no API key sits in a tfvars file. CI
+(`.github/workflows/terraform-check.yml`) runs `fmt` + `validate` only and never
+plans or applies.
 
 ```bash
+terraform login                       # once per machine
 cd terraform
+cp environments/dev/terraform.tfvars.example environments/dev/terraform.tfvars   # fill in
 terraform init
 terraform plan  -var-file=environments/dev/terraform.tfvars
 terraform apply -var-file=environments/dev/terraform.tfvars
 ```
 
+The state was rebuilt on 2026-10-17 with `import` blocks after the original
+local state file was left on another machine: 31 resources imported, then
+`plan` showed no changes.
+
 The cluster/node-pool Kubernetes version and node image are **owned by
 [oke-version-guard](https://github.com/BarryPekerman/oke-version-guard)** after
 creation (`lifecycle.ignore_changes`), so Terraform never fights its upgrades.
+
+### Volume backups
+`modules/backups` holds one weekly policy (`pvc-weekly-dev`: FULL, Sunday 03:00
+UTC, kept 10 days) and assigns it to the PVC volumes listed in
+`backup_volume_ids`. The volumes themselves belong to Kubernetes (the CSI driver
+creates them for PVCs); only the schedule is managed here. At most 2 weekly
+backups exist, plus the one pre-upgrade backup oke-version-guard keeps per
+volume; Always Free allows 5.
 
 ### CI upgrader identity
 `modules/ci-upgrader` creates the scoped user + group + policy that
@@ -63,6 +80,7 @@ terraform/              # OKE infrastructure (Terraform)
   modules/oke/          # OKE cluster + ARM64 node pool
   modules/iam/          # Dynamic group + node policies (block volumes for PVCs)
   modules/ci-upgrader/  # Scoped CI identity for oke-version-guard
+  modules/backups/      # Weekly backup policy for PVC volumes
 kubernetes/
   argocd/               # ArgoCD Helm values
   storage/              # oci-bv-free-tier StorageClass (used by the wiki PVC)

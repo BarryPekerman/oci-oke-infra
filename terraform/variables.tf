@@ -14,22 +14,6 @@ variable "compartment_ocid" {
   type        = string
 }
 
-variable "user_ocid" {
-  description = "OCI User OCID"
-  type        = string
-}
-
-variable "fingerprint" {
-  description = "OCI API Key Fingerprint"
-  type        = string
-}
-
-variable "private_key" {
-  description = "OCI Private Key (PEM format)"
-  type        = string
-  sensitive   = true
-}
-
 variable "region" {
   description = "OCI Region"
   type        = string
@@ -121,4 +105,12 @@ variable "ci_user_email" {
   description = "Primary email for the CI user (IDCS requires one; use a plus-tagged address)"
   type        = string
   default     = ""
+}
+
+# --- Volume backups ---
+
+variable "backup_volume_ids" {
+  description = "PVC volumes to back up weekly, as name => volume OCID"
+  type        = map(string)
+  default     = {}
 }

@@ -61,3 +61,17 @@ module "oke" {
 
   depends_on = [module.iam]
 }
+
+# --- Volume backups (PVC volumes) ---
+module "backups" {
+  source = "./modules/backups"
+
+  # Weekly FULL backups kept 10 days: at most 2 exist at a time, plus the one
+  # pre-upgrade backup oke-version-guard keeps per volume. Always Free allows 5.
+  # FULL (not INCREMENTAL) so each backup stands alone and expires cleanly.
+  compartment_ocid = var.compartment_ocid
+  policy_name      = "pvc-weekly-${var.environment}"
+  backup_type      = "FULL"
+  retention_days   = 10
+  volume_ids       = var.backup_volume_ids
+}
