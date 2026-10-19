@@ -14,7 +14,7 @@ OCI Always Free (il-jerusalem-1)
 
 Kubernetes Workloads
 ├── ArgoCD         (Helm, values in kubernetes/argocd/ — ksops sidecar for SOPS secrets)
-└── via ArgoCD, managed in the migrate-schitzopunk repo:
+└── via ArgoCD, managed in the oke-gitops repo (app-of-apps):
     ├── wiki           (MediaWiki, 50GB PVC on oci-bv-free-tier)
     ├── cert-manager
     └── envoy-gateway  (public ingress)

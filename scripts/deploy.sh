@@ -39,7 +39,7 @@ echo "StorageClass applied."
 
 # --- Phase 4: ArgoCD ---
 # Apps (wiki, cert-manager, envoy-gateway) are ArgoCD Applications managed from
-# the migrate-schitzopunk repo, not from here.
+# the oke-gitops repo (app-of-apps), not from here.
 echo ""
 echo "=== Phase 4: ArgoCD ==="
 if ! helm repo list 2>/dev/null | grep -q "argo"; then
