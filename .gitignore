@@ -1,17 +1,56 @@
-# Terraform state & secrets — never commit (state holds resource details; tfvars holds the API private key)
-*.tfstate
-*.tfstate.*
-*.tfvars
-!*.tfvars.example
-tfplan
-.terraform/
-crash.log
+# Allow-list: ignore everything, then unignore exactly what may be committed.
+# Adding a file? Add its !path line here too ("nothing to commit" = missing line).
+*
 
-# Keys / kube credentials
-*.pem
-kubeconfig
-.kube/
+# Unignore directories (needed to traverse into them)
+!.github/
+!.github/workflows/
+!kubernetes/
+!kubernetes/argocd/
+!kubernetes/storage/
+!scripts/
+!terraform/
+!terraform/environments/
+!terraform/environments/dev/
+!terraform/modules/
+!terraform/modules/backups/
+!terraform/modules/ci-upgrader/
+!terraform/modules/iam/
+!terraform/modules/networking/
+!terraform/modules/oke/
 
-# Plaintext k8s secrets
-secret.yaml
-*.secret.yaml
+# Unignore specific files
+!.github/workflows/terraform-check.yml
+!.gitignore
+!README.md
+!kubernetes/argocd/values.yaml
+!kubernetes/storage/storageclass.yaml
+!scripts/check-free-tier.sh
+!scripts/deploy.sh
+!scripts/setup-kubeconfig.sh
+!terraform/.terraform.lock.hcl
+!terraform/environments/dev/terraform.tfvars.example
+!terraform/main.tf
+!terraform/modules/backups/main.tf
+!terraform/modules/backups/outputs.tf
+!terraform/modules/backups/variables.tf
+!terraform/modules/backups/versions.tf
+!terraform/modules/ci-upgrader/main.tf
+!terraform/modules/ci-upgrader/outputs.tf
+!terraform/modules/ci-upgrader/variables.tf
+!terraform/modules/ci-upgrader/versions.tf
+!terraform/modules/iam/main.tf
+!terraform/modules/iam/outputs.tf
+!terraform/modules/iam/variables.tf
+!terraform/modules/iam/versions.tf
+!terraform/modules/networking/main.tf
+!terraform/modules/networking/outputs.tf
+!terraform/modules/networking/variables.tf
+!terraform/modules/networking/versions.tf
+!terraform/modules/oke/main.tf
+!terraform/modules/oke/outputs.tf
+!terraform/modules/oke/variables.tf
+!terraform/modules/oke/versions.tf
+!terraform/outputs.tf
+!terraform/provider.tf
+!terraform/variables.tf
