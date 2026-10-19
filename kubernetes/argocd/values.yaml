@@ -97,13 +97,15 @@ repoServer:
 # --- Application Controller ---
 controller:
   replicas: 1
+  # 512Mi OOM-killed the controller while syncing kube-prometheus-stack (its
+  # CRDs are huge), which stalled every app's sync. Room for large charts.
   resources:
     requests:
       cpu: 100m
-      memory: 256Mi
+      memory: 512Mi
     limits:
       cpu: 500m
-      memory: 512Mi
+      memory: 1536Mi
 
 # --- Redis ---
 redis:
