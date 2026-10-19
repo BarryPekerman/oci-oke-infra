@@ -1,7 +1,10 @@
 # OKE Free Tier Dev Environment
 
 Terraform for an Oracle Cloud Always Free OKE cluster, plus the ArgoCD install
-that the workloads are deployed through.
+that the workloads are deployed through. Besides a wiki, the cluster runs the
+monitoring for [The Handover](https://play.barrypekerman.com), a browser-based
+Linux & DevOps wargame hosted in a separate OCI tenancy
+([handover-hosting](https://github.com/BarryPekerman/handover-hosting)).
 
 ## Architecture
 
@@ -17,7 +20,10 @@ Kubernetes Workloads
 └── via ArgoCD, managed in the oke-gitops repo (app-of-apps):
     ├── wiki           (MediaWiki, 50GB PVC on oci-bv-free-tier)
     ├── cert-manager
-    └── envoy-gateway  (public ingress)
+    ├── envoy-gateway  (public ingress)
+    └── monitoring     (kube-prometheus-stack: Prometheus with 60 days on a node-local
+                        volume, Alertmanager to Telegram, Grafana behind Cloudflare
+                        Access; scrapes The Handover's game host through its tunnel)
 ```
 
 ## Free Tier Budget
