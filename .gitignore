@@ -30,6 +30,7 @@
 !scripts/setup-kubeconfig.sh
 !terraform/.terraform.lock.hcl
 !terraform/environments/dev/terraform.tfvars.example
+!terraform/cloudflare.tf
 !terraform/main.tf
 !terraform/modules/backups/main.tf
 !terraform/modules/backups/outputs.tf

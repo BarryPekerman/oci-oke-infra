@@ -15,6 +15,10 @@ terraform {
       source  = "oracle/oci"
       version = "~> 6.0"
     }
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "5.28.0"
+    }
   }
 }
 
@@ -24,3 +28,7 @@ provider "oci" {
   config_file_profile = "DEFAULT"
   region              = var.region
 }
+
+# Cloudflare: the tunnel and DNS for the sites this cluster serves
+# (cloudflare.tf). Reads CLOUDFLARE_API_TOKEN from the environment.
+provider "cloudflare" {}
