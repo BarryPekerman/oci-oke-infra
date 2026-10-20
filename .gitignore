@@ -31,6 +31,7 @@
 !terraform/.terraform.lock.hcl
 !terraform/environments/dev/terraform.tfvars.example
 !terraform/cloudflare.tf
+!terraform/grafana.tf
 !terraform/main.tf
 !terraform/modules/backups/main.tf
 !terraform/modules/backups/outputs.tf
