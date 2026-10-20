@@ -6,9 +6,8 @@
 # in the cluster is exposed. Public: no Access in front. The run token goes into
 # oke-gitops as the SOPS secret portfolio/tunnel.enc.yaml (from the output below).
 #
-# www is the test hostname: it goes live first, while the bare domain still
-# redirects to the game (handover-hosting/infra/apex.tf). Deleting apex.tf and
-# adding the apex record here is the switch-over.
+# The bare domain and www both point at the tunnel. (The apex used to redirect
+# to the game, from handover-hosting/infra/apex.tf, until the site was ready.)
 locals {
   cf_account = "dbcba7623c52bc78632ae5f31399a06d"
   cf_zone    = "8e1c1adb257eb08052cc949c2ae7bb0c" # barrypekerman.com
@@ -40,6 +39,23 @@ data "cloudflare_zero_trust_tunnel_cloudflared_token" "portfolio" {
 resource "cloudflare_dns_record" "portfolio_www" {
   zone_id                 = local.cf_zone
   name                    = "www.barrypekerman.com"
+  type                    = "CNAME"
+  content                 = "${cloudflare_zero_trust_tunnel_cloudflared.portfolio.id}.cfargotunnel.com"
+  proxied                 = true
+  ttl                     = 1
+  tags                    = []
+  include_shadow_metadata = false
+  settings = {
+    flatten_cname = false
+    ipv4_only     = false
+    ipv6_only     = false
+  }
+}
+
+# CNAME at the apex: Cloudflare flattens it, so this is valid at the zone root
+resource "cloudflare_dns_record" "portfolio_apex" {
+  zone_id                 = local.cf_zone
+  name                    = "barrypekerman.com"
   type                    = "CNAME"
   content                 = "${cloudflare_zero_trust_tunnel_cloudflared.portfolio.id}.cfargotunnel.com"
   proxied                 = true
