@@ -14,6 +14,7 @@
 !terraform/environments/dev/
 !terraform/modules/
 !terraform/modules/backups/
+!terraform/modules/budget/
 !terraform/modules/ci-upgrader/
 !terraform/modules/iam/
 !terraform/modules/networking/
@@ -37,6 +38,10 @@
 !terraform/modules/backups/outputs.tf
 !terraform/modules/backups/variables.tf
 !terraform/modules/backups/versions.tf
+!terraform/modules/budget/main.tf
+!terraform/modules/budget/outputs.tf
+!terraform/modules/budget/variables.tf
+!terraform/modules/budget/versions.tf
 !terraform/modules/ci-upgrader/main.tf
 !terraform/modules/ci-upgrader/outputs.tf
 !terraform/modules/ci-upgrader/variables.tf

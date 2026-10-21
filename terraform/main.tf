@@ -62,6 +62,15 @@ module "oke" {
   depends_on = [module.iam]
 }
 
+# --- Budget (spend alerts for the whole tenancy, which is Pay As You Go) ---
+module "budget" {
+  source = "./modules/budget"
+
+  tenancy_ocid = var.tenancy_ocid
+  amount       = 1
+  alert_email  = var.budget_alert_email
+}
+
 # --- Volume backups (PVC volumes) ---
 module "backups" {
   source = "./modules/backups"
