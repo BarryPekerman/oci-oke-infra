@@ -71,5 +71,7 @@ resource "oci_identity_policy" "ci" {
     # The Kubernetes API is private: CI opens a bastion port-forward session for kubectl.
     "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to use bastion in compartment id ${var.compartment_ocid}",
     "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to manage bastion-session in compartment id ${var.compartment_ocid}",
+    # Creating a port-forward session to an IP checks the caller can read its VCN.
+    "Allow group '${var.domain_name}'/'${oci_identity_domains_group.ci.display_name}' to read vcns in compartment id ${var.compartment_ocid}",
   ]
 }
