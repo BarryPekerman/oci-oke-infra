@@ -13,6 +13,7 @@ OCI Always Free (il-jerusalem-1)
 ├── OKE Basic Cluster (managed control plane, free)
 │   └── Node Pool: 2x VM.Standard.A1.Flex (2 OCPU, 12GB RAM each)
 ├── VCN (public + private subnets)
+├── Bastion (managed, free): the only way in to the private Kubernetes API
 └── Block Storage (200GB budget: 2x50GB boot + PVCs)
 
 Kubernetes Workloads
@@ -95,6 +96,20 @@ kubernetes/
 scripts/                # Deployment and utility scripts
 .github/workflows/      # Terraform static checks
 ```
+
+## Reaching the cluster
+
+The Kubernetes API endpoint is private. `scripts/kube-tunnel.sh` opens an OCI
+Bastion session (throwaway SSH key, up to 3 hours) and forwards
+`127.0.0.1:6443` to it; Ctrl-C closes it and deletes the session.
+
+```bash
+./scripts/kube-tunnel.sh                         # terminal 1
+export KUBECONFIG=~/.kube/oke-private.yaml       # terminal 2
+kubectl get nodes
+```
+
+oke-version-guard does the same from GitHub Actions for upgrades.
 
 ## Scripts
 

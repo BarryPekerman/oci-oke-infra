@@ -1,50 +1,34 @@
 #!/usr/bin/env bash
 # ============================================================================
-# setup-kubeconfig.sh - Generate kubeconfig for OKE cluster
-# Run after terraform apply to configure kubectl access
+# setup-kubeconfig.sh - Wait for the cluster through the bastion tunnel
+# The API endpoint is private: start ./scripts/kube-tunnel.sh in another
+# terminal first (it writes ~/.kube/oke-private.yaml on its first run).
+# Run after terraform apply.
 # ============================================================================
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TF_DIR="${SCRIPT_DIR}/../terraform"
+export KUBECONFIG="${KUBECONFIG_FILE:-$HOME/.kube/oke-private.yaml}"
 
 echo "=== OKE Kubeconfig Setup ==="
+echo "Kubeconfig: $KUBECONFIG (via the bastion tunnel)"
 
-# Get cluster info from Terraform outputs
-cd "$TF_DIR"
-
-CLUSTER_ID=$(terraform output -raw cluster_id 2>/dev/null) || {
-  echo "ERROR: Could not get cluster_id from Terraform. Run 'terraform apply' first."
-  exit 1
-}
-
-REGION=$(terraform output -raw region 2>/dev/null) || {
-  echo "ERROR: Could not get region from Terraform."
-  exit 1
-}
-
-echo "Cluster ID: $CLUSTER_ID"
-echo "Region:     $REGION"
-
-# Create kubeconfig directory
-mkdir -p "$HOME/.kube"
-
-# Generate kubeconfig
-echo ""
-echo "Generating kubeconfig..."
-oci ce cluster create-kubeconfig \
-  --cluster-id "$CLUSTER_ID" \
-  --file "$HOME/.kube/config" \
-  --region "$REGION" \
-  --token-version 2.0.0 \
-  --kube-endpoint PUBLIC_ENDPOINT
-
-echo "Kubeconfig written to $HOME/.kube/config"
+# Wait for the tunnel
+MAX_WAIT=600
+ELAPSED=0
+until [ -f "$KUBECONFIG" ] && kubectl get --raw=/readyz >/dev/null 2>&1; do
+  if [ $ELAPSED -ge $MAX_WAIT ]; then
+    echo "ERROR: API not reachable after ${MAX_WAIT}s. Is ./scripts/kube-tunnel.sh running?"
+    exit 1
+  fi
+  echo "  Waiting for the tunnel (start ./scripts/kube-tunnel.sh in another terminal)... ($ELAPSED/${MAX_WAIT}s)"
+  sleep 15
+  ELAPSED=$((ELAPSED + 15))
+done
+echo "API reachable."
 
 # Wait for node to be ready
 echo ""
 echo "Waiting for worker node to be Ready..."
-MAX_WAIT=600
 ELAPSED=0
 
 while [ $ELAPSED -lt $MAX_WAIT ]; do
@@ -75,10 +59,7 @@ done
 echo ""
 echo "=== Setup Complete ==="
 echo ""
-echo "Cluster endpoint: $(terraform output -raw cluster_endpoint)"
-echo ""
-echo "Next steps:"
+echo "Next steps (with the tunnel running, export KUBECONFIG=$KUBECONFIG):"
 echo "  1. kubectl get nodes       # Verify node is Ready"
 echo "  2. kubectl get pods -A     # Check system pods"
 echo "  3. ./scripts/deploy.sh     # Deploy apps"
-
