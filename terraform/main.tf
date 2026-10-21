@@ -19,14 +19,11 @@ module "networking" {
   private_subnet_cidr = var.private_subnet_cidr
 }
 
-# --- IAM (Dynamic Groups + Policies) ---
-module "iam" {
-  source = "./modules/iam"
-
-  tenancy_ocid     = var.tenancy_ocid
-  compartment_ocid = var.compartment_ocid
-  environment      = var.environment
-}
+# --- No node identity policy ---
+# Worker nodes get no IAM permissions: any pod can borrow a node's instance
+# principal (Flannel has no NetworkPolicy to block instance metadata). Block
+# volumes for PVCs are created and attached by the cluster's own resource
+# principal (seen in the Audit log), not by the nodes.
 
 # --- CI upgrader identity (scoped API-key user for oke-version-guard) ---
 # IAM-plane only. Opt-in via enable_ci_upgrader; does not touch compute/cluster/storage.
@@ -58,8 +55,6 @@ module "oke" {
   node_ocpus          = var.node_ocpus
   node_memory_gb      = var.node_memory_gb
   boot_volume_size_gb = var.boot_volume_size_gb
-
-  depends_on = [module.iam]
 }
 
 # --- Bastion (the way in to the private Kubernetes API) ---

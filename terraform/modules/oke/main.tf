@@ -50,10 +50,14 @@ resource "oci_containerengine_cluster" "oke_cluster" {
     cni_type = "FLANNEL_OVERLAY"
   }
 
-  # Private API endpoint only: reach it through the bastion (scripts/kube-tunnel.sh,
-  # and oke-version-guard's bastion-tunnel.sh). Switched from public in place.
+  # Reach the API through the bastion (scripts/kube-tunnel.sh, and oke-version-guard's
+  # bastion-tunnel.sh). The public IP stays on only as the control plane's way out to
+  # OCI APIs (CSI volume provisioning, cloud controller): this subnet hosts the wiki's
+  # public load balancer, so it routes to the Internet Gateway, and OCI won't add an
+  # "All Services" Service Gateway route next to that. Nothing reaches 6443 from the
+  # internet: the API NSG has no such rule and the security list doesn't allow it.
   endpoint_config {
-    is_public_ip_enabled = false
+    is_public_ip_enabled = true
     subnet_id            = var.public_subnet_id
     nsg_ids              = [var.api_nsg_id]
   }

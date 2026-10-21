@@ -85,7 +85,6 @@ terraform apply -var-file=environments/dev/terraform.tfvars -target=module.ci_up
 terraform/              # OKE infrastructure (Terraform)
   modules/networking/   # VCN, subnets, gateways, NSGs
   modules/oke/          # OKE cluster + ARM64 node pool
-  modules/iam/          # Dynamic group + node policies (block volumes for PVCs)
   modules/ci-upgrader/  # Scoped CI identity for oke-version-guard
   modules/backups/      # Weekly backup policy for PVC volumes
   modules/bastion/      # OCI Bastion in front of the private Kubernetes API
@@ -99,8 +98,10 @@ scripts/                # Deployment and utility scripts
 
 ## Reaching the cluster
 
-The Kubernetes API endpoint is private. `scripts/kube-tunnel.sh` opens an OCI
-Bastion session (throwaway SSH key, up to 3 hours) and forwards
+The Kubernetes API isn't reachable from the internet: its NSG and the subnet's
+security list don't allow 6443. (The endpoint keeps a public IP only so the
+control plane can reach OCI APIs; see `terraform/modules/oke/main.tf`.)
+`scripts/kube-tunnel.sh` opens an OCI Bastion session (throwaway SSH key, up to 3 hours) and forwards
 `127.0.0.1:6443` to it; Ctrl-C closes it and deletes the session.
 
 ```bash

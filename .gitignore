@@ -17,7 +17,6 @@
 !terraform/modules/bastion/
 !terraform/modules/budget/
 !terraform/modules/ci-upgrader/
-!terraform/modules/iam/
 !terraform/modules/networking/
 !terraform/modules/oke/
 
@@ -52,10 +51,6 @@
 !terraform/modules/ci-upgrader/outputs.tf
 !terraform/modules/ci-upgrader/variables.tf
 !terraform/modules/ci-upgrader/versions.tf
-!terraform/modules/iam/main.tf
-!terraform/modules/iam/outputs.tf
-!terraform/modules/iam/variables.tf
-!terraform/modules/iam/versions.tf
 !terraform/modules/networking/main.tf
 !terraform/modules/networking/outputs.tf
 !terraform/modules/networking/variables.tf
