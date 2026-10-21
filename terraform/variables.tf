@@ -114,3 +114,10 @@ variable "backup_volume_ids" {
   type        = map(string)
   default     = {}
 }
+
+# --- Budget ---
+
+variable "budget_alert_email" {
+  description = "Where budget alerts are sent"
+  type        = string
+}
