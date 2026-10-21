@@ -73,7 +73,8 @@ resource "oci_containerengine_cluster" "oke_cluster" {
       services_cidr = "10.96.0.0/16"
     }
 
-    # LB subnet (not actively used - Cloudflare Tunnel handles ingress)
+    # LB subnet: the wiki's public load balancer (Envoy wiki-gateway) lives here. The
+    # other sites come in through Cloudflare Tunnels and use no load balancer.
     service_lb_subnet_ids = [var.public_subnet_id]
 
     persistent_volume_config {

@@ -18,7 +18,8 @@ server:
       cpu: 500m
       memory: 512Mi
 
-  # Disable TLS on server side (Cloudflare Tunnel handles TLS)
+  # Plain HTTP: argocd-server is ClusterIP only (no route or tunnel), reached with
+  # kubectl port-forward through the bastion tunnel.
   extraArgs:
     - --insecure
 
@@ -38,7 +39,8 @@ repoServer:
   # Install arm64 sops + ksops into a shared volume at boot (base image ships neither).
   initContainers:
     - name: install-ksops
-      image: alpine:3.24
+      # Pinned by digest (multi-arch index for 3.24): a re-pushed tag can't change what runs.
+      image: alpine:3.24@sha256:294b683cb724975bec92580e1e685676bd4b50bda910ddb8c51d4cabeaec77e6
       command: ["sh", "-c"]
       args:
         - |
@@ -155,5 +157,5 @@ configs:
     application.resourceTrackingMethod: label
 
   params:
-    # Serve plain HTTP (TLS terminated in front of argocd-server)
+    # Serve plain HTTP (see server.extraArgs)
     server.insecure: true
