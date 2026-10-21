@@ -87,6 +87,8 @@ terraform/              # OKE infrastructure (Terraform)
   modules/iam/          # Dynamic group + node policies (block volumes for PVCs)
   modules/ci-upgrader/  # Scoped CI identity for oke-version-guard
   modules/backups/      # Weekly backup policy for PVC volumes
+  modules/bastion/      # OCI Bastion in front of the private Kubernetes API
+  modules/budget/       # Tenancy-wide spend alerts (Pay As You Go)
 kubernetes/
   argocd/               # ArgoCD Helm values
   storage/              # oci-bv-free-tier StorageClass (used by the wiki PVC)
@@ -100,4 +102,5 @@ scripts/                # Deployment and utility scripts
 |---|---|
 | `scripts/deploy.sh` | Terraform apply → kubeconfig → StorageClass → ArgoCD |
 | `scripts/setup-kubeconfig.sh` | Generate kubectl config |
+| `scripts/kube-tunnel.sh` | Bastion session + tunnel to the private Kubernetes API (`KUBECONFIG=~/.kube/oke-private.yaml`) |
 | `scripts/check-free-tier.sh` | Check OCI usage vs Always Free limits |

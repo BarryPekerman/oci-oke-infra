@@ -28,3 +28,8 @@ output "k8s_version" {
   value       = local.k8s_version
 }
 
+
+output "cluster_private_endpoint" {
+  description = "OKE Kubernetes API private endpoint (ip:port), reached through the bastion"
+  value       = oci_containerengine_cluster.oke_cluster.endpoints[0].private_endpoint
+}

@@ -22,6 +22,16 @@ output "kubernetes_version" {
   value       = module.oke.cluster_kubernetes_version
 }
 
+output "cluster_private_endpoint" {
+  description = "OKE Kubernetes API private endpoint (ip:port), reached through the bastion"
+  value       = module.oke.cluster_private_endpoint
+}
+
+output "bastion_id" {
+  description = "Bastion OCID (scripts/kube-tunnel.sh opens sessions on it)"
+  value       = module.bastion.bastion_id
+}
+
 output "kubeconfig_command" {
   description = "Command to generate kubeconfig"
   value       = "oci ce cluster create-kubeconfig --cluster-id ${module.oke.cluster_id} --file $HOME/.kube/config --region ${var.region} --token-version 2.0.0 --kube-endpoint PUBLIC_ENDPOINT"
