@@ -13,10 +13,6 @@ output "cluster_kubernetes_version" {
   value       = oci_containerengine_cluster.oke_cluster.kubernetes_version
 }
 
-output "cluster_endpoint" {
-  description = "OKE cluster API endpoint"
-  value       = oci_containerengine_cluster.oke_cluster.endpoints[0].public_endpoint
-}
 
 output "node_pool_id" {
   description = "Node pool OCID"

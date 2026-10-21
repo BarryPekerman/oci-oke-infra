@@ -13,8 +13,8 @@ output "cluster_name" {
 }
 
 output "cluster_endpoint" {
-  description = "OKE Kubernetes API endpoint"
-  value       = module.oke.cluster_endpoint
+  description = "OKE Kubernetes API endpoint (private; reach it with scripts/kube-tunnel.sh)"
+  value       = module.oke.cluster_private_endpoint
 }
 
 output "kubernetes_version" {
@@ -33,8 +33,8 @@ output "bastion_id" {
 }
 
 output "kubeconfig_command" {
-  description = "Command to generate kubeconfig"
-  value       = "oci ce cluster create-kubeconfig --cluster-id ${module.oke.cluster_id} --file $HOME/.kube/config --region ${var.region} --token-version 2.0.0 --kube-endpoint PUBLIC_ENDPOINT"
+  description = "How to reach the private Kubernetes API"
+  value       = "./scripts/kube-tunnel.sh   # then: export KUBECONFIG=~/.kube/oke-private.yaml"
 }
 
 output "vcn_id" {

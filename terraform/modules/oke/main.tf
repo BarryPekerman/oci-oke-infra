@@ -50,9 +50,10 @@ resource "oci_containerengine_cluster" "oke_cluster" {
     cni_type = "FLANNEL_OVERLAY"
   }
 
-  # Public API endpoint so we can reach it without VPN
+  # Private API endpoint only: reach it through the bastion (scripts/kube-tunnel.sh,
+  # and oke-version-guard's bastion-tunnel.sh). Switched from public in place.
   endpoint_config {
-    is_public_ip_enabled = true
+    is_public_ip_enabled = false
     subnet_id            = var.public_subnet_id
     nsg_ids              = [var.api_nsg_id]
   }

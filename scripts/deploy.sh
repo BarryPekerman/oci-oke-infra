@@ -8,6 +8,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="${SCRIPT_DIR}/.."
 TF_DIR="${ROOT_DIR}/terraform"
 K8S_DIR="${ROOT_DIR}/kubernetes"
+# The API endpoint is private: kubectl and helm go through the bastion tunnel
+# (./scripts/kube-tunnel.sh, started in another terminal once Phase 1 is done).
+export KUBECONFIG="${KUBECONFIG_FILE:-$HOME/.kube/oke-private.yaml}"
 
 echo "============================================"
 echo "  OKE Free Tier Deployment"
@@ -18,7 +21,7 @@ echo ""
 echo "=== Phase 1: Infrastructure (Terraform) ==="
 cd "$TF_DIR"
 
-terraform init -upgrade
+terraform init
 terraform plan -var-file=environments/dev/terraform.tfvars -out=tfplan
 terraform apply tfplan
 rm -f tfplan

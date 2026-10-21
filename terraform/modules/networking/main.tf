@@ -122,22 +122,8 @@ resource "oci_core_network_security_group" "api_nsg" {
   display_name   = "oke-api-nsg-${var.environment}"
 }
 
-# API Ingress: kubectl from anywhere
-resource "oci_core_network_security_group_security_rule" "api_ingress_kubectl" {
-  network_security_group_id = oci_core_network_security_group.api_nsg.id
-  direction                 = "INGRESS"
-  protocol                  = "6" # TCP
-  source                    = "0.0.0.0/0"
-  source_type               = "CIDR_BLOCK"
-  tcp_options {
-    destination_port_range {
-      min = 6443
-      max = 6443
-    }
-  }
-}
-
-# API Ingress: workers -> API on 6443
+# API Ingress: workers (and the bastion, which lives in the same subnet) -> API on 6443.
+# There is no rule from the internet: the API endpoint is private.
 resource "oci_core_network_security_group_security_rule" "api_ingress_workers_6443" {
   network_security_group_id = oci_core_network_security_group.api_nsg.id
   direction                 = "INGRESS"
