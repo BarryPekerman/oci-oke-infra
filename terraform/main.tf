@@ -62,6 +62,18 @@ module "oke" {
   depends_on = [module.iam]
 }
 
+# --- Bastion (the way in to the private Kubernetes API) ---
+# In the private subnet: the API NSG already allows 6443 from it
+# (api_ingress_workers_6443), so no extra rule is needed.
+module "bastion" {
+  source = "./modules/bastion"
+
+  compartment_ocid             = var.compartment_ocid
+  environment                  = var.environment
+  target_subnet_id             = module.networking.private_subnet_id
+  client_cidr_block_allow_list = ["0.0.0.0/0"]
+}
+
 # --- Budget (spend alerts for the whole tenancy, which is Pay As You Go) ---
 module "budget" {
   source = "./modules/budget"
