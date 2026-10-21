@@ -7,18 +7,15 @@ set -euo pipefail
 REGION="${OCI_CLI_REGION:-il-jerusalem-1}"
 COMPARTMENT_ID="${OCI_COMPARTMENT_ID:-}"
 
-# Try to get compartment from Terraform if not set
+# Try to get compartment from Terraform if not set (state lives in HCP Terraform,
+# so this needs `terraform init` and a login, not a local tfstate file)
 if [ -z "$COMPARTMENT_ID" ]; then
   SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  TF_DIR="${SCRIPT_DIR}/../terraform"
-  if [ -f "${TF_DIR}/terraform.tfstate" ]; then
-    cd "$TF_DIR"
-    COMPARTMENT_ID=$(terraform output -raw compartment_ocid 2>/dev/null || echo "")
-  fi
+  COMPARTMENT_ID=$(cd "${SCRIPT_DIR}/../terraform" && terraform output -raw compartment_ocid 2>/dev/null || echo "")
 fi
 
 if [ -z "$COMPARTMENT_ID" ]; then
-  echo "ERROR: Set OCI_COMPARTMENT_ID or ensure Terraform state exists"
+  echo "ERROR: Set OCI_COMPARTMENT_ID, or run terraform init in terraform/ first"
   exit 1
 fi
 
@@ -58,12 +55,13 @@ VOLUMES=$(oci bv volume list \
   --output table 2>/dev/null || echo "  No block volumes")
 echo "$VOLUMES"
 
+# boot-volume list has no --lifecycle-state option, so filter in the query.
 BOOT_VOLUMES=$(oci bv boot-volume list \
   -c "$COMPARTMENT_ID" \
   --region "$REGION" \
   --availability-domain "$(oci iam availability-domain list -c "$COMPARTMENT_ID" --query "data[0].name" --raw-output 2>/dev/null)" \
-  --lifecycle-state AVAILABLE \
-  --query "data[*].{name:\"display-name\", size_gb:\"size-in-gbs\"}" \
+  --all \
+  --query "data[?\"lifecycle-state\"=='AVAILABLE'].{name:\"display-name\", size_gb:\"size-in-gbs\"}" \
   --output table 2>/dev/null || echo "  No boot volumes")
 echo "Boot Volumes:"
 echo "$BOOT_VOLUMES"
@@ -78,8 +76,8 @@ TOTAL_BOOT=$(oci bv boot-volume list \
   -c "$COMPARTMENT_ID" \
   --region "$REGION" \
   --availability-domain "$(oci iam availability-domain list -c "$COMPARTMENT_ID" --query "data[0].name" --raw-output 2>/dev/null)" \
-  --lifecycle-state AVAILABLE \
-  --query "data[*].\"size-in-gbs\"" \
+  --all \
+  --query "data[?\"lifecycle-state\"=='AVAILABLE'].\"size-in-gbs\"" \
   --output json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(sum(int(x) for x in d if x))" 2>/dev/null || echo "0")
 
 TOTAL_STORAGE=$((TOTAL_BV + TOTAL_BOOT))
