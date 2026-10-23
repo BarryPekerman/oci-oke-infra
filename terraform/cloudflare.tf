@@ -6,7 +6,8 @@
 # in the cluster is exposed. Public: no Access in front. The run token goes into
 # oke-gitops as the SOPS secret portfolio/tunnel.enc.yaml (from the output below).
 #
-# The bare domain and www both point at the tunnel. (The apex used to redirect
+# The bare domain and www both point at the tunnel, and so does
+# argocd-webhook (one path, for GitHub's webhook to ArgoCD; see the ingress). (The apex used to redirect
 # to the game, from handover-hosting/infra/apex.tf, until the site was ready.)
 locals {
   cf_account = "dbcba7623c52bc78632ae5f31399a06d"
@@ -26,6 +27,12 @@ resource "cloudflare_zero_trust_tunnel_cloudflared_config" "portfolio" {
     ingress = [
       { hostname = "barrypekerman.com", service = "http://portfolio.portfolio.svc.cluster.local:80" },
       { hostname = "www.barrypekerman.com", service = "http://portfolio.portfolio.svc.cluster.local:80" },
+      # GitHub's push webhook for oke-gitops, so ArgoCD syncs on a merge instead
+      # of at its next poll. Only that one path reaches argocd-server; anything
+      # else on the hostname gets the 404 below. ArgoCD checks each call's HMAC
+      # against webhook.github.secret in argocd-secret (set out of git), and
+      # still polls, should a webhook be missed.
+      { hostname = "argocd-webhook.barrypekerman.com", path = "^/api/webhook$", service = "http://argocd-server.argocd.svc.cluster.local:80" },
       { service = "http_status:404" },
     ]
   }
@@ -56,6 +63,22 @@ resource "cloudflare_dns_record" "portfolio_www" {
 resource "cloudflare_dns_record" "portfolio_apex" {
   zone_id                 = local.cf_zone
   name                    = "barrypekerman.com"
+  type                    = "CNAME"
+  content                 = "${cloudflare_zero_trust_tunnel_cloudflared.portfolio.id}.cfargotunnel.com"
+  proxied                 = true
+  ttl                     = 1
+  tags                    = []
+  include_shadow_metadata = false
+  settings = {
+    flatten_cname = false
+    ipv4_only     = false
+    ipv6_only     = false
+  }
+}
+
+resource "cloudflare_dns_record" "argocd_webhook" {
+  zone_id                 = local.cf_zone
+  name                    = "argocd-webhook.barrypekerman.com"
   type                    = "CNAME"
   content                 = "${cloudflare_zero_trust_tunnel_cloudflared.portfolio.id}.cfargotunnel.com"
   proxied                 = true

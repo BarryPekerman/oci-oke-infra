@@ -156,6 +156,15 @@ configs:
     # to avoid orphaning/pruning surprises on the first sync after the upgrade.
     application.resourceTrackingMethod: label
 
+  # GitHub's push webhook for oke-gitops: terraform/cloudflare.tf routes
+  # argocd-webhook.barrypekerman.com/api/webhook (that path only) here, so a
+  # merge syncs at once; polling stays as the fallback. ArgoCD checks each
+  # call's HMAC against the webhook.github.secret key of argocd-secret. That
+  # key is set with kubectl, not here (it would land in git); helm upgrade
+  # leaves keys it never set alone. The same value is the webhook's secret in
+  # GitHub (oke-gitops settings, Webhooks).
+  #   kubectl -n argocd patch secret argocd-secret --type merge -p '{"stringData":{"webhook.github.secret":"<secret>"}}'
+
   params:
     # Serve plain HTTP (see server.extraArgs)
     server.insecure: true
