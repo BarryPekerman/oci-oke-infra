@@ -44,8 +44,8 @@ Kubernetes Workloads
 and locks the state. **Auth** comes from the OCI CLI config (`~/.oci/config`,
 profile `DEFAULT`), so no API key sits in a tfvars file. The Cloudflare
 provider (`cloudflare.tf`, `grafana.tf`) reads `CLOUDFLARE_API_TOKEN`: the
-token is kept in `~/.config/cloudflare/oke-infra-token` (Account: Cloudflare
-Tunnel Edit, Access: Apps and Policies Edit; Zone barrypekerman.com: DNS Edit). CI
+token is kept in `~/.config/cloudflare/oke-infra-token`. It needs Account: Cloudflare
+Tunnel Edit, Access: Apps and Policies Edit, and Zone barrypekerman.com: DNS Edit. CI
 (`.github/workflows/terraform-check.yml`) runs `fmt` + `validate` only and never
 plans or applies.
 
